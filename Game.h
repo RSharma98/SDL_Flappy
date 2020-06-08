@@ -3,8 +3,10 @@
 
 #include "SDL.h"
 #include "SDL_image.h"
+#include <SDL_ttf.h>
 #include "Time.h"
 #include <iostream>
+#include <string>
 #include "Camera.h"
 #include "RenderManager.h"
 #include "BackgroundObject.h"
@@ -40,6 +42,24 @@ private:
 	float m_MaxPipePos;		//The maximum the pipe position on the y axis
 
 	int m_NumFloors;		//The number of floor tiles
+
+	float m_TimeSinceScore;	//The time since the score was last increased
+	int m_Score;			//The score and highscore of the player
+	int m_HighScore;
+
+	void UpdateScoreUI();
+	void UpdateHighScoreUI();
+
+	TTF_Font* font;						//The font used for the game UI
+	SDL_Surface* m_TitleSurface;		//The surface for the game title
+	SDL_Surface* m_HighScoreSurface;	//The surface for the high score
+	SDL_Surface* m_BeginSurface;		//The surface for the text to begin the game
+	SDL_Texture* m_TitleTexture;
+	SDL_Texture* m_HighScoreTexture;
+	SDL_Texture* m_BeginTexture;
+	SDL_Surface* m_ScoreSurface;
+	SDL_Texture* m_ScoreTexture;
+	SDL_Rect m_TitleRect, m_HighScoreRect, m_BeginRect, m_ScoreRect;
 
 	RenderManager* renderManager;
 	Camera* camera;

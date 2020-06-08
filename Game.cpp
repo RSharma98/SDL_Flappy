@@ -25,6 +25,9 @@ Game::Game(const char* title, int xPos, int yPos, int width, int height, bool fu
 	m_MaxPipePos = 4;
 	for (int i = 0; i < m_NumPipes; i++) pipes[i] = new PipeObject();
 
+	m_Score = m_HighScore = 0;
+	m_TimeSinceScore = 0;
+
 	int flags = fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
 	renderManager = new RenderManager();
 	isRunning = false;
@@ -39,10 +42,22 @@ Game::Game(const char* title, int xPos, int yPos, int width, int height, bool fu
 		if (renderer) std::cout << "Renderer created.\n";
 		isRunning = true;
 	}
+
+	if (TTF_Init() < 0) std::cout << "TTF ERROR: " << TTF_GetError() << '\n';
 }
 
 Game::~Game() {
+	SDL_FreeSurface(m_TitleSurface);
+	SDL_DestroyTexture(m_TitleTexture);
 
+	SDL_FreeSurface(m_BeginSurface);
+	SDL_DestroyTexture(m_BeginTexture);
+
+	SDL_FreeSurface(m_HighScoreSurface);
+	SDL_DestroyTexture(m_HighScoreTexture);
+
+	SDL_FreeSurface(m_ScoreSurface);
+	SDL_DestroyTexture(m_ScoreTexture);
 }
 
 void Game::Initialise() {
@@ -56,21 +71,65 @@ void Game::Initialise() {
 	float backgroundWidth = (m_OrthoSize * ((float)Height / Width)) / 1.5f;
 	background->Initialise(renderer, Vector2(0, 0), Vector2(backgroundWidth, m_OrthoSize * 2));
 	for (int i = 0; i < m_NumFloors; i++) floors[i]->Initialise(renderer, Vector2((-m_NumFloors / 2) + i, -m_OrthoSize + 0.5f), Vector2(1, 1));
+
+	font = TTF_OpenFont("Assets/Pixellari.ttf", 50);
+	
+	m_TitleSurface = TTF_RenderText_Solid(font, "SDL FLAPPY", { 255, 255, 255 });
+	m_TitleTexture = SDL_CreateTextureFromSurface(renderer, m_TitleSurface);
+	m_TitleRect = { Width / 2 - m_TitleSurface->w / 2, Height / 2 - m_TitleSurface->h / 2, m_TitleSurface->w, m_TitleSurface->h };
+
+	m_BeginSurface = TTF_RenderText_Solid(font, "PRESS SPACE OR CLICK TO BEGIN", { 255, 255, 255 });
+	m_BeginTexture = SDL_CreateTextureFromSurface(renderer, m_BeginSurface);
+	m_BeginRect = { Width / 2 - m_BeginSurface->w / 4, Height / 2 + m_TitleSurface->h / 2, m_BeginSurface->w / 2, m_BeginSurface->h / 2 };
+
+	m_HighScoreSurface = TTF_RenderText_Solid(font, "HIGH SCORE: 0", { 255, 255, 255 });
+	m_HighScoreTexture = SDL_CreateTextureFromSurface(renderer, m_HighScoreSurface);
+	m_HighScoreRect = { Width / 2 - m_HighScoreSurface->w / 4, Height - m_HighScoreSurface->h / 2, m_HighScoreSurface->w / 2, m_HighScoreSurface->h / 2 };
+
+	UpdateScoreUI();
 }
 
 void Game::Update() {
 	background->Update();
 	player->Update();
 
-	for (int i = 0; i < m_NumPipes; i++) {
-		pipes[i]->Update();
-		if (player->GetBox().IsColliding(pipes[i]->GetBottomBox()) || player->GetBox().IsColliding(pipes[i]->GetTopBox())) isRunning = false;
-
-		if (pipes[i]->GetPos().x <= -5) {
-			int previousIndex = i == 0 ? m_NumPipes - 1 : i - 1;
+	if (isMainMenu) {
+		if (Input::GetKeyDown(Input::KeyCode::Space) || Input::GetMouseButtonDown(0)) isMainMenu = false;
+		player->SetCanMove(false);
+		for (int i = 0; i < m_NumPipes; i++) {
 			int side = Random() / 1000 >= m_MaxPipePos / 2 ? 1 : -1;
-			Vector2 newPos = Vector2(pipes[previousIndex]->GetPos().x + m_PipeSpacing, side * (Random() / 1000));
-			pipes[i]->SetPosition(newPos);
+			pipes[i]->SetPosition(Vector2(10 + (i * m_PipeSpacing), side * (Random() / 1000)));
+		}
+	}
+	else {
+		player->SetCanMove(true);
+		m_TimeSinceScore += Time::GetDeltaTime();
+
+		for (int i = 0; i < m_NumPipes; i++) {
+			pipes[i]->Update();
+			if (player->GetBox().IsColliding(pipes[i]->GetBottomBox()) || player->GetBox().IsColliding(pipes[i]->GetTopBox())) {
+				if (m_Score > m_HighScore) {
+					m_HighScore = m_Score;
+					m_Score = 0;
+					UpdateScoreUI();
+					UpdateHighScoreUI();
+				}
+				isMainMenu = true;
+			}
+
+			if (player->GetBox().GetTopLeft().x >= pipes[i]->GetBottomBox().GetBottomRight().x && m_TimeSinceScore >= 0.5f) {
+				m_Score++;
+				UpdateScoreUI();
+				std::cout << "SCORE: " << m_Score << '\n';
+				m_TimeSinceScore = 0;
+			}
+
+			if (pipes[i]->GetPos().x <= -5) {
+				int previousIndex = i == 0 ? m_NumPipes - 1 : i - 1;
+				int side = Random() / 1000 >= m_MaxPipePos / 2 ? 1 : -1;
+				Vector2 newPos = Vector2(pipes[previousIndex]->GetPos().x + m_PipeSpacing, side * (Random() / 1000));
+				pipes[i]->SetPosition(newPos);
+			}
 		}
 	}
 
@@ -117,13 +176,23 @@ void Game::Render() {
 	//The render manager renders all objects in the game (if they've been added)
 	renderManager->Render(renderer);
 
-	for (int i = 0; i < m_NumPipes; i++) {
+	/*for (int i = 0; i < m_NumPipes; i++) {
 		pipes[i]->Render(renderer);
-	}
+	}*/
 
-	player->Render(renderer);
+	//player->Render(renderer);
 
 	//camera->Render(renderer);
+
+	if (isMainMenu) {
+		SDL_RenderCopy(renderer, m_TitleTexture, NULL, &m_TitleRect);
+		SDL_RenderCopy(renderer, m_BeginTexture, NULL, &m_BeginRect);
+		SDL_RenderCopy(renderer, m_HighScoreTexture, NULL, &m_HighScoreRect);
+	}
+	else {
+		SDL_RenderCopy(renderer, m_ScoreTexture, NULL, &m_ScoreRect);
+	}
+	
 
 	SDL_RenderPresent(renderer);						//Render the frame
 }
@@ -134,6 +203,23 @@ void Game::Clean() {
 	SDL_DestroyRenderer(renderer);
 	SDL_Quit();
 	std::cout << "Game cleaned.\n";
+}
+
+void Game::UpdateScoreUI() {
+	std::string scoreText = std::to_string(m_Score);
+	m_ScoreSurface = TTF_RenderText_Solid(font, scoreText.c_str(), { 255, 255, 255 });
+	m_ScoreTexture = SDL_CreateTextureFromSurface(renderer, m_ScoreSurface);
+	m_ScoreRect = { Width / 2 - m_ScoreSurface->w, Height / 8 - m_ScoreSurface->h, m_ScoreSurface->w * 2, m_ScoreSurface->h * 2 };
+	SDL_FreeSurface(m_ScoreSurface);
+}
+
+void Game::UpdateHighScoreUI() {
+	std::string highscoreText = "HIGH SCORE: ";
+	highscoreText += std::to_string(m_HighScore);
+	m_HighScoreSurface = TTF_RenderText_Solid(font, highscoreText.c_str(), { 255, 255, 255 });
+	m_HighScoreTexture = SDL_CreateTextureFromSurface(renderer, m_HighScoreSurface);
+	m_HighScoreRect = { Width / 2 - m_HighScoreSurface->w / 4, Height - m_HighScoreSurface->h / 2, m_HighScoreSurface->w / 2, m_HighScoreSurface->h / 2 };
+	SDL_FreeSurface(m_HighScoreSurface);
 }
 
 //This function generates a random number between zero and max (multiplied by 1000)

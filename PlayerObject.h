@@ -15,13 +15,14 @@ public:
 	void Update();
 	void Render(SDL_Renderer* renderer);
 	void SetPosition(Vector2 position);
-	void Fall(float speed);
+	void SetCanMove(bool b) { canMove = b; }
 	BoxCollider2D GetBox() { return box; }
 
 private:
 	Vector2 m_Vel;
 	float m_FallSpeed;
 	float m_JumpHeight;
+	bool canMove;
 
 	BoxCollider2D box;
 };

@@ -7,6 +7,7 @@ PlayerObject::PlayerObject() {
 	m_Vel = Vector2(0, 0);
 	m_FallSpeed = 28.0f;
 	m_JumpHeight = 8.0f;
+	canMove = true;
 }
 
 PlayerObject::~PlayerObject(){
@@ -26,11 +27,13 @@ void PlayerObject::Update() {
 	else m_Vel.y -= m_FallSpeed * Time::GetDeltaTime();
 
 	//Add the velocity to the position
-	m_Pos += m_Vel * Time::GetDeltaTime();
+	if (canMove) m_Pos += m_Vel * Time::GetDeltaTime();
+	else m_Pos.y = 0;
 
-	//Replace this with a game over state
-	if (m_Pos.y <= -7 || m_Pos.y >= 7) m_Pos.y = 7 * MathHelper::Sign(m_Pos.y);
-	
+	//TODO: Replace this with a game over state
+	if (m_Pos.y <= -6) m_Pos.y = -6;
+	else if (m_Pos.y >= 7) m_Pos.y = 7;
+
 	box.position = m_Pos;
 	GameObject::Update();
 	box.Update();
