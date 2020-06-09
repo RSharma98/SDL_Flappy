@@ -61,11 +61,26 @@ private:
 	SDL_Texture* m_ScoreTexture;
 	SDL_Rect m_TitleRect, m_HighScoreRect, m_BeginRect, m_ScoreRect;
 
+	void PlayAudio(SDL_AudioDeviceID id, Uint8* buffer, Uint32 length);	//Play the specified sound effect
+
+	SDL_AudioDeviceID jumpID;
+	SDL_AudioSpec jumpSpec;			//The variables for the game sound effects
+	Uint32 jumpLength;
+	Uint8* jumpBuffer;
+	SDL_AudioDeviceID pointID;
+	SDL_AudioSpec pointSpec;
+	Uint32 pointLength;
+	Uint8* pointBuffer;
+	SDL_AudioDeviceID dieID;
+	SDL_AudioSpec dieSpec;
+	Uint32 dieLength;
+	Uint8* dieBuffer;
+
 	RenderManager* renderManager;
 	Camera* camera;
 	BackgroundObject* background;
 	PlayerObject* player;
-	FloorObject* floors[10];
+	FloorObject* floors[20];
 	PipeObject* pipes[3];
 	Input* input;
 };
