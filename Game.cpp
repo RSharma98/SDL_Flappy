@@ -108,6 +108,9 @@ void Game::Update() {
 	background->Update();
 	player->Update();
 
+	//When the jump button is pressed play the sound effect
+	if (Input::GetKeyDown(Input::KeyCode::Space) || Input::GetMouseButtonDown(0)) PlayAudio(jumpID, jumpBuffer, jumpLength);
+
 	if (isMainMenu) {
 		//Begin the game on input 
 		if (Input::GetKeyDown(Input::KeyCode::Space) || Input::GetMouseButtonDown(0)) isMainMenu = false;
@@ -122,9 +125,6 @@ void Game::Update() {
 	else {
 		player->SetCanMove(true);		//Allow the player to move
 
-		//When the jump button is pressed play the sound effect
-		if (Input::GetKeyDown(Input::KeyCode::Space) || Input::GetMouseButtonDown(0)) PlayAudio(jumpID, jumpBuffer, jumpLength);
-
 		m_TimeSinceScore += Time::GetDeltaTime();	//Increase the time since the last score
 
 		for (int i = 0; i < m_NumPipes; i++) {
@@ -132,15 +132,7 @@ void Game::Update() {
 
 			//Check for collision between the player and any pipe
 			if (player->GetBox().IsColliding(pipes[i]->GetBottomBox()) || player->GetBox().IsColliding(pipes[i]->GetTopBox())) {
-				PlayAudio(dieID, dieBuffer, dieLength);	//Play the death audio
-				//Update the high score
-				if (m_Score > m_HighScore) {
-					m_HighScore = m_Score;
-					m_Score = 0;
-					UpdateScoreUI();
-					UpdateHighScoreUI();
-				}
-				isMainMenu = true;	//Return to the main menu
+				Reset();
 			}
 
 			//If the player has passed a pipe, increase their score
@@ -172,6 +164,20 @@ void Game::Update() {
 			floors[i]->SetPosition(newPos);
 		}
 	}
+
+	if (player->GetPos().y >= m_OrthoSize || player->GetPos().y <= -m_OrthoSize + 1) Reset();
+}
+
+void Game::Reset() {
+	PlayAudio(dieID, dieBuffer, dieLength);	//Play the death audio
+				//Update the high score
+	if (m_Score > m_HighScore) {
+		m_HighScore = m_Score;
+		m_Score = 0;
+		UpdateScoreUI();
+		UpdateHighScoreUI();
+	}
+	isMainMenu = true;	//Return to the main menu
 }
 
 //This function handles input events and passes it to the input manager class

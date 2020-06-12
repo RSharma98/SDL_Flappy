@@ -47,6 +47,7 @@ private:
 	int m_Score;			//The score and highscore of the player
 	int m_HighScore;
 
+	void Reset();			//Reset the game when the player dies
 	void UpdateScoreUI();
 	void UpdateHighScoreUI();
 

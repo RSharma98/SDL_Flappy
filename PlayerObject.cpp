@@ -30,10 +30,6 @@ void PlayerObject::Update() {
 	if (canMove) m_Pos += m_Vel * Time::GetDeltaTime();
 	else m_Pos.y = 0;
 
-	//TODO: Replace this with a game over state
-	if (m_Pos.y <= -6) m_Pos.y = -6;
-	else if (m_Pos.y >= 7) m_Pos.y = 7;
-
 	box.position = m_Pos;
 	GameObject::Update();
 	box.Update();
